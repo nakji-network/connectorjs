@@ -1,10 +1,10 @@
-import { getConfig, IConfig } from './packages/config/config'
+import { getConfig, IConfig } from '../../config/config'
 import { loadManifest, Manifest } from './manifest'
-import { Env, IMessage, MsgType, ConsumerOptions } from './packages/kafkautils/types'
-import { newConsumer } from './packages/kafkautils/consumer'
-import { newProducer } from './packages/kafkautils/producer'
-import { Topic } from './packages/kafkautils/topic'
-import { TopicTypes, registerDynamicTopics } from './packages/protoregistry/src/client'
+import { Env, IMessage, MsgType, ConsumerOptions } from '../../kafkautils/types'
+import { newConsumer } from '../../kafkautils/consumer'
+import { newProducer } from '../../kafkautils/producer'
+import { Topic } from '../../kafkautils/topic'
+import { TopicTypes, registerDynamicTopics } from '../../protoregistry/src/client'
 
 import { Consumer, Producer, KafkaMessage, ProducerBatch } from 'kafkajs'
 import * as proto from 'protobufjs';
@@ -28,7 +28,8 @@ export class Connector {
     }
 
     /**
-     * create() build a new Connector instance and returns to the caller.
+     * create() builds a new Connector instance.
+     * 
      * @param options functions to apply to connector instance
      * @returns new connector instance
      */
@@ -52,13 +53,12 @@ export class Connector {
             throw new Error('missing manifest.yaml')
         }
 
-        // TODO protoregistry
-
         return c
     }
 
     /**
-     * parseOption() applies custom functions to the connector.
+     * parseOption() applies custom functions to the Connector instance.
+     * 
      * @param connector connector instance 
      * @param options functions to apply to the connector instance
      */
@@ -69,7 +69,7 @@ export class Connector {
     }
 
     /**
-     * withManifest() returns a function that will be applied manually to Connector 
+     * withManifest() returns a function that will be applied manually to Connector instance.
      * @param manifest connector metadata
      * @returns function to be applied to connector
      */
@@ -80,11 +80,19 @@ export class Connector {
     }
 
     /**
-     * id() returns a unique id for this connector based on the manifest.
+     * id() returns a unique id for this Connector instance, based on the manifest.
      * @returns Connector ID string
      */
     private id(): string {
         return `${this.manifest.author}-${this.manifest.name}-${this.manifest.version}-${this.env}`
+    }
+
+    get RPCs(): any {
+        return this.rpcs
+    }
+
+    get Config(): IConfig {
+        return this.config
     }
 
     /**
@@ -107,7 +115,7 @@ export class Connector {
     }
 
     /**
-     * startProducer() creates a new kafka producer instance
+     * startProducer() creates a new kafka producer instance.
      */
     private async startProducer() {
         console.log("initializing kafka producer. transactionID: ", this.id())
@@ -116,6 +124,7 @@ export class Connector {
     }
 
     /**
+     * produceMessages() wraps incoming messages with a kafka transaction and sends them to kafka. 
      * 
      * @param msgType kafkautils message type
      * @param messages messages to be pushed to kafka
@@ -141,7 +150,7 @@ export class Connector {
     }
 
     /**
-     * startConsumer() creates a new kafka consumer instance
+     * startConsumer() creates a new kafka consumer instance.
      * 
      * @param overrideOpts a dict to override default kafka consumer options
      */
@@ -181,14 +190,6 @@ export class Connector {
                 }
             },
         })
-    }
-
-    get RPCs(): any {
-        return this.rpcs
-    }
-
-    get Config(): IConfig {
-        return this.config
     }
 
     /**
