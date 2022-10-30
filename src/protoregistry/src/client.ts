@@ -16,7 +16,7 @@ type TopicProtoMsg = {
 }
 
 /**
- * 
+ * registerDynamicTopics() stores protobuf definitions and creates kafka topics for them.
  * 
  * @param host URL to protoregistry host
  * @param topicTypes topic name to protobuf definition map
