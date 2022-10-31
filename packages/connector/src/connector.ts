@@ -103,7 +103,7 @@ export class Connector {
      * @param msg  protobuf message
      * @returns Topic object
      */
-    private generateTopicFromProto(msgType: MsgType, msg: proto.Message): Topic {
+    private generateTopicFromProto(msgType: MsgType, msg: proto.Type): Topic {
         return new Topic(
             this.env,
             msgType,
@@ -134,7 +134,7 @@ export class Connector {
 
         let batch = messages.map(msg => {
             return {
-                topic: this.generateTopicFromProto(msgType, msg.protoMsg),
+                topic: this.generateTopicFromProto(msgType, msg.protoMsg.$type),
                 messages: [msg.protoMsg]
             }
         })
@@ -198,7 +198,7 @@ export class Connector {
      * @param protos protocol buffer definitions
      * @returns 
      */
-    public registerProtos(msgType: MsgType, ...protos: proto.Message[]): void {
+    public registerProtos(msgType: MsgType, ...protos: proto.Type[]): void {
         if (this.env == Env.DEV) {
             console.log("protoregistry is disabled in dev mode, set kafka.env to other values (e.g., test, staging) to enable it")
             return
