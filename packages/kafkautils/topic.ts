@@ -9,7 +9,7 @@ export class Topic {
     readonly connectorName: string
     readonly version: typeof SemVer
     readonly eventName: string
-    pb: proto.Message // create an empty protobuf struct instance, filled upon UnmarshalProto
+    pb: proto.Type // create an empty protobuf struct instance, filled upon UnmarshalProto
 
     public constructor(
         env: Env,
@@ -17,14 +17,14 @@ export class Topic {
         author: string,
         connectorName: string,
         version: typeof SemVer,
-        pb: proto.Message) {
+        pb: proto.Type) {
 
         this.env = env
         this.msgType = msgType
         this.author = author
         this.connectorName = connectorName
         this.version = version
-        this.eventName = pb.$type.resolve().fullName.replace(".", "_")
+        this.eventName = pb.fullName.replace(".", "_")
         this.pb = pb
     }
 

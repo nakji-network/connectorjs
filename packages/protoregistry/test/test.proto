@@ -1,0 +1,26 @@
+syntax = "proto3";
+package test;
+
+import "google/protobuf/timestamp.proto";
+
+// Mint represents a Mint event raised by the Compound contract.
+message Mint {
+  google.protobuf.Timestamp ts = 1;
+  uint64 block = 2;
+  uint64 idx = 3;
+  bytes tx = 4; // tx hash
+  bytes minter = 5; // The address that minted the assets
+  bytes mintAmount = 6;
+  bytes mintTokens = 7;
+}
+
+// Redeem represents a Borrow event raised by the Compound contract.
+message Redeem {
+  google.protobuf.Timestamp ts = 1;
+  uint64 block = 2;
+  uint64 idx = 3;
+  bytes tx = 4; // tx hash
+  bytes redeemer = 5; // The address that redeemed the assets
+  bytes redeemAmount = 6;
+  bytes redeemTokens = 7;
+}
