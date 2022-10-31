@@ -1,12 +1,12 @@
 import { MsgType, CONTEXT_SEPARATOR } from "../../kafkautils/types"
 
-import * as proto from 'protobufjs';
 import { exec } from 'node:child_process'
-const fs = require('fs')
-const path = require('path')
-const http = require('http');
+import * as proto from 'protobufjs'
+import * as fs from 'fs'
+import * as path from 'path'
+import * as http from 'http'
 
-export type TopicTypes = { [tt: string]: proto.Message }
+export type TopicTypes = { [tt: string]: proto.Type }
 
 type TopicProtoMsg = {
     msg_type: MsgType
@@ -38,7 +38,7 @@ export function registerDynamicTopics(host: string, topicTypes: TopicTypes, msgT
         }
     })
 
-    req.on('error', (e) => {
+    req.on('error', (e: Error) => {
         console.error(`call failed. error: ${e.message}`);
     });
 
@@ -58,8 +58,8 @@ export function buildTopicProtoMsgs(topicTypes: TopicTypes, msgType: MsgType): T
     for (let [k, v] of Object.entries(topicTypes)) {
         let tpm = {
             msg_type: msgType,
-            topic: v.$type.fullName,    // nakji.uniswapv2.0_0_0.liquiditypool_Change
-            proto_msg: v.$type.filename // liquiditypool.Change
+            topic: k,    // nakji.uniswapv2.0_0_0.liquiditypool_Change
+            proto_msg: v.fullName // .liquiditypool.Change
         } as TopicProtoMsg
 
         tpmList.push(tpm)
@@ -71,12 +71,14 @@ export function buildTopicProtoMsgs(topicTypes: TopicTypes, msgType: MsgType): T
  * generateDescriptorFiles() scans the local disk looking for proto files and generates proto descriptor files.
  */
 export function generateDescriptorFiles(tpmList: TopicProtoMsg[]): void {
-    let cwd = process.cwd()
-
     for (let tpm of tpmList) {
+        let pkg = tpm.proto_msg.split(CONTEXT_SEPARATOR)[1]
+        let filepath = getProtoFilePath(process.cwd(), pkg)
+
+        if (!filepath) throw new Error(`proto file not found. package: ${pkg}`)
+
         try {
-            let path = getProtoFilePath(cwd, tpm)
-            let descFile = generateDescriptorFile(path)
+            let descFile = generateDescriptorFile(filepath)
             let desc = fs.readFileSync(descFile)
             tpm.descriptor = desc
         } catch (err) {
@@ -102,12 +104,12 @@ function generateDescriptorFile(filepath: string): string {
     }
 
     let cmd = `protoc --include_imports --descriptor_set_out=${descFile} -I=${dir} ${file}`
-    exec(cmd, (err, output) => {
+    exec(cmd, (err, stdout, stderr) => {
         if (err) {
             console.error("could not execute command: " + err)
             return ""
         }
-        console.debug(output)
+        return descFile
     })
 
     return descFile
@@ -116,21 +118,24 @@ function generateDescriptorFile(filepath: string): string {
 /**
  * getProtoFilePath() finds the absolute path to certain .proto file inside project.
  * 
- * @param baseDir project base directory path
- * @param tpm {@link TopicProtoMsg} protobuf message object
+ * @param dir project base directory path
+ * @param filename file name with extension
  * @returns path to .proto file
  */
-function getProtoFilePath(baseDir: string, tpm: TopicProtoMsg): string {
+function getProtoFilePath(baseDir: string, pkg: string): string {
 
-    let pkg = tpm.proto_msg.split(CONTEXT_SEPARATOR)[0]
+    let filepath = ''
+    function find(dir: string, filename: string) {
+        for (let f of fs.readdirSync(dir)) {
+            let dirPath = path.join(dir, f)
 
-    let filenames = fs.readdirSync(baseDir)
-    for (let f of filenames) {
-        let filepath = path.join(baseDir, f)
-        if (fs.statSync(filepath).isFile() && f == pkg + '.proto') {
-            return filepath
+            if (fs.statSync(dirPath).isDirectory()) {
+                find(dirPath, filename)
+            } else if (filename == path.basename(dirPath)) {
+                filepath = dirPath
+            }
         }
     }
-    throw new Error('proto file not found')
+    find(baseDir, pkg + '.proto')
+    return filepath
 }
-
