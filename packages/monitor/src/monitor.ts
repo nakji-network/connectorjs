@@ -1,4 +1,4 @@
-import { GetPrometheusMetricsPort } from '../../config/config'
+import { getPrometheusMetricsPort } from '../../config/config'
 import * as client from 'prom-client'
 import * as express from 'express'
 
@@ -15,12 +15,12 @@ export class Monitor {
         })
     }
 
-    public async startMonitor(name: string) {
+    public static async startMonitor(name: string): Promise<Monitor> {
         let m = new Monitor(name)
-        console.log(`starting monitoring. name: ${this.connectorName}`)
+        console.log(`starting monitoring. name: ${name}`)
 
         let collectDefaultMetrics = client.collectDefaultMetrics
-        collectDefaultMetrics({ prefix: this.connectorName + '_' })
+        collectDefaultMetrics({ prefix: name + '_' })
         await client.register.metrics()
 
         let aggregatorRegistry = new client.AggregatorRegistry()
@@ -35,13 +35,14 @@ export class Monitor {
                 res.statusCode = 500;
                 res.send(e.message);
             }
-        });
+        })
 
-        let port = GetPrometheusMetricsPort()
+        let port = getPrometheusMetricsPort()
         metricsServer.listen(port)
+        return m
     }
 
-    public async SetMetricsForKafkaLastWriteTime() {
+    public async setMetricsForKafkaLastWriteTime() {
         this.kafkaLastWriteTime.setToCurrentTime({ 'connector': this.connectorName })
         await client.register.metrics()
     }

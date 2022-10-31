@@ -5,6 +5,7 @@ import { newConsumer } from '../../kafkautils/consumer'
 import { newProducer } from '../../kafkautils/producer'
 import { Topic } from '../../kafkautils/topic'
 import { TopicTypes, registerDynamicTopics } from '../../protoregistry/src/client'
+import { Monitor } from '../../monitor/src/monitor'
 
 import { Consumer, Producer, KafkaMessage, ProducerBatch } from 'kafkajs'
 import * as proto from 'protobufjs';
@@ -12,18 +13,21 @@ import * as proto from 'protobufjs';
 export class Connector {
     private config: IConfig
     private env: Env
-    private readonly kafkaUrl: string
     private manifest: Manifest
+    private readonly kafkaUrl: string
+    private readonly protoRegistryHost: string
     private readonly rpcs: any
+
     private consumer?: Consumer
     private producer?: Producer
-    private protoRegistryHost: string
+    private monitor?: Monitor
 
     private constructor(config: IConfig, env: Env, kafkaUrl: string, manifest: Manifest, rpcs: any, protoRegistryHost: string) {
         this.config = config
         this.env = env
-        this.kafkaUrl = kafkaUrl
         this.manifest = manifest
+        this.kafkaUrl = kafkaUrl
+        this.protoRegistryHost = protoRegistryHost
         this.rpcs = rpcs
     }
 
@@ -119,6 +123,7 @@ export class Connector {
      */
     private async startProducer() {
         console.log("initializing kafka producer. transactionID: ", this.id())
+        this.monitor = await Monitor.startMonitor(this.id())
         this.producer = newProducer(this.kafkaUrl, this.id())
         await this.producer.connect()
     }
@@ -147,6 +152,8 @@ export class Connector {
         } catch (e) {
             await transaction?.abort()
         }
+
+        this.monitor?.setMetricsForKafkaLastWriteTime()
     }
 
     /**
@@ -156,6 +163,7 @@ export class Connector {
      */
     private async startConsumer(overrideOpts: ConsumerOptions) {
         console.log("initializing kafka producer. groupID: ", this.id())
+        this.monitor = await Monitor.startMonitor(this.id())
         this.consumer = newConsumer(this.kafkaUrl, this.id(), overrideOpts)
     }
 

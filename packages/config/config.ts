@@ -100,6 +100,6 @@ function _init(): void {
 
 }
 
-export function GetPrometheusMetricsPort(): string {
+export function getPrometheusMetricsPort(): string {
     return config['prometheus.metrics.port']
 }
